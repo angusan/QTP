@@ -82,6 +82,7 @@ namespace qtp
         //----------------------------------------------------------------------
         private void Main_Load(object sender, EventArgs e)
         {
+            // #fix this code
             fOnNotifyConnection = new FOnNotifyConnection(OnNotifyConnection);
             GC.KeepAlive(fOnNotifyConnection);
             GC.SuppressFinalize(fOnNotifyConnection);
