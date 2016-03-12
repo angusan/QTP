@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Collections;
 
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Timers;
@@ -35,6 +36,7 @@ namespace qtp
         private TICK        m_Tick;
 
         DataContext sqliteContext;
+        Hashtable symbolNames = new Hashtable();
 
         private delegate void InvokeSendMessage(string state);
         //private delegate void EnterMonitor();
@@ -103,13 +105,13 @@ namespace qtp
             GC.KeepAlive(fOnNotifyServerTime);
             GC.SuppressFinalize(fOnNotifyServerTime);
 
-            fOnNotifyMarketTot = new FOnNotifyMarketTot(OnNotifyMarketTot);
-            GC.KeepAlive(fOnNotifyMarketTot);
-            GC.SuppressFinalize(fOnNotifyMarketTot);
+            //fOnNotifyMarketTot = new FOnNotifyMarketTot(OnNotifyMarketTot);
+            //GC.KeepAlive(fOnNotifyMarketTot);
+            //GC.SuppressFinalize(fOnNotifyMarketTot);
 
-            fOnNotifyMarketBuySell = new FOnNotifyMarketBuySell(OnNotifyMarketBuySell);
-            GC.KeepAlive(fOnNotifyMarketBuySell);
-            GC.SuppressFinalize(fOnNotifyMarketBuySell);
+            //fOnNotifyMarketBuySell = new FOnNotifyMarketBuySell(OnNotifyMarketBuySell);
+            //GC.KeepAlive(fOnNotifyMarketBuySell);
+            //GC.SuppressFinalize(fOnNotifyMarketBuySell);
 
             fOnNotifyTicksGet = new FOnNotifyTicksGet(OnNotifyTicksGet);
             GC.KeepAlive(fOnNotifyTicksGet);
@@ -454,9 +456,9 @@ namespace qtp
 
             Functions.SKQuoteLib_GetTick(sMarketNo, sStockidx, nPtr, out tick);
 
-            InsertTick(tick);
+            InsertTick(tick, sMarketNo, sStockidx, nPtr);
         }
-         
+
         public  void OnNotifyBest5(short sMarketNo, short sStockidx)
         {
             BEST5 best5;
@@ -521,16 +523,6 @@ namespace qtp
             }
         }
 
-        public void OnNotifyMarketTot(short sMarketNo, short sPrt, int lTime, int lTotv, int lTots, int lTotc)
-        {
-
-        }
-
-        public void OnNotifyMarketBuySell(short cMarketNo, short sPrt, int lTime, int lBc, int lSc, int lBs, int lSs)
-        {
-            
-        }
-
         public void OnNotifyTicksGet(short sMarketNo, short sStockidx, int nPtr, int nTime, int nBid, int nAsk, int nClose, int nQty)
         {
             m_Tick.m_nTime  = nTime;
@@ -540,7 +532,8 @@ namespace qtp
             m_Tick.m_nPtr   = nPtr;
             m_Tick.m_nQty   = nQty;
 
-            InsertTick(m_Tick);  
+            InsertTick(m_Tick, sMarketNo, sStockidx, nPtr);
+
         }
 
         public void OnProductsReady()
@@ -851,12 +844,12 @@ namespace qtp
             aProp.SetValue(c, true, null);
         }
 
-        public void InsertTick( TICK pTick)
+        public void InsertTick(TICK pTick, short sMarketNo, short sStockidx, int nPtr)
         {
             DataRow myDataRow = m_dtTick.NewRow();
 
-            myDataRow["m_nPtr"]     = pTick.m_nPtr;
-            myDataRow["m_nTime"]    = pTick.m_nTime;
+            myDataRow["m_nPtr"] = pTick.m_nPtr;
+            myDataRow["m_nTime"] = pTick.m_nTime;
 
             if (pTick.m_nBid == -999999)
                 myDataRow["m_nBid"] = 0;
@@ -871,12 +864,61 @@ namespace qtp
             if (pTick.m_nAsk == -999999)
                 myDataRow["m_nClose"] = 0;
             else
-                myDataRow["m_nClose"]   = pTick.m_nClose / 100.00;
+                myDataRow["m_nClose"] = pTick.m_nClose / 100.00;
 
-            myDataRow["m_nQty"]     = pTick.m_nQty;
+            myDataRow["m_nQty"] = pTick.m_nQty;
 
             m_dtTick.Rows.Add(myDataRow);
 
+            insertTickToDB(pTick, sMarketNo, sStockidx, nPtr);
+        }
+        
+
+        private void insertTickToDB(TICK pTick, short sMarketNo, short sStockidx, int nPtr)
+        {
+            String symbol = "";
+            String key = sMarketNo.ToString() + sStockidx.ToString();
+
+            if (symbolNames.Contains(key))
+            {
+                symbol = System.Convert.ToString(symbolNames[key]);
+            }
+            else {
+                STOCK pSTOCK;
+                int nCode = Functions.SKQuoteLib_GetStockByIndex(sMarketNo, sStockidx, out pSTOCK);
+                if (nCode == 0)
+                {
+                    int nMarketNo = pSTOCK.m_cMarketNo;
+                    //商品代碼
+                    symbolNames.Add(key, pSTOCK.m_caStockNo);
+                    symbol = pSTOCK.m_caStockNo;
+                }
+            }
+
+            //insert db
+            Tick newTick = new Tick();
+            newTick.marketNo = sMarketNo;
+            newTick.stockIdx = symbol;
+            newTick.ptr = nPtr;
+            newTick.date = DateTime.Today.ToString("yyyyMMdd");
+            if (pTick.m_nBid == -999999)
+                newTick.bid = 0;
+            else
+                newTick.bid = Convert.ToInt32(pTick.m_nBid / 100.00);
+
+            if (pTick.m_nAsk == -999999)
+                newTick.ask = 0;
+            else
+                newTick.ask = Convert.ToInt32(pTick.m_nAsk / 100.00);
+            
+            if (pTick.m_nAsk == -999999)
+                newTick.close = 0;
+            else
+                newTick.close = Convert.ToInt32(pTick.m_nClose / 100.00);
+
+            //FIXME : SQLite高速寫檔 有效能問題
+            //sqliteContext.GetTable<Tick>().InsertOnSubmit(newTick);
+            //sqliteContext.SubmitChanges();
         }
 
         private void InsertBest5(BEST5 Best5)
@@ -988,9 +1030,7 @@ namespace qtp
                 {
                     MessageBox.Show(ex.ToString());
                 }
-            }
-
-            
+            }            
         }
 
         protected override void WndProc(ref Message m)
@@ -1099,6 +1139,22 @@ namespace qtp
             sqliteContext.SubmitChanges();
 
             gridBooking.DataSource = this.findBookings();
+        }
+
+        private void btnSaveTick_Click(object sender, EventArgs e)
+        {
+            /*
+            List<Tick> ticks = DataTableConverter.to<Tick>(m_dtTick);
+            foreach (var tick in ticks) {
+                try
+                {
+                    sqliteContext.GetTable<Tick>().InsertOnSubmit(tick);
+                    sqliteContext.SubmitChanges();
+                } catch (Exception ex) {
+                    Console.Write(ex.ToString());
+                }
+            }
+            */
         }
     }
 }

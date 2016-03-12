@@ -66,8 +66,11 @@ namespace QTP.service
 
             foreach (PropertyInfo item in type.GetProperties())
             {
-                if (DataTableValue.Columns.IndexOf(item.Name) != -1)
+                if (DataTableValue.Columns.IndexOf(item.Name) == -1)
+                {
                     pr_List.Add(item);
+                }
+
             }
 
             //逐筆將 DataTable 的值新增到 List<TResult> 中
@@ -77,8 +80,11 @@ namespace QTP.service
 
                 foreach (PropertyInfo item1 in pr_List)
                 {
+                    if (item.Table.Columns[item1.Name] == null) continue;
                     if (item[item1.Name] != DBNull.Value)
+                    {
                         item1.SetValue(tr, item[item1.Name], null);
+                    }
                 }
 
                 Result_List.Add(tr);
