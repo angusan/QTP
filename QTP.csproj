@@ -126,6 +126,7 @@
   <ItemGroup>
     <Compile Include="entity\Booking.cs" />
     <Compile Include="entity\Code_Mapping.cs" />
+    <Compile Include="entity\Tick.cs" />
     <Compile Include="Functions.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
