@@ -70,8 +70,6 @@ namespace qtp
         IntPtr HWND_BROADCAST = new IntPtr(0xffff);
         uint MSG_SHOW = RegisterWindowMessage("Message");
 
-        int insertCount = 0;
-
         #endregion
 
         #region Initialize
@@ -933,12 +931,7 @@ namespace qtp
 
             newTick.qty = pTick.m_nQty;
 
-            //FIXME : SQLite高速寫檔 有效能問題
-            //sqliteContext.GetTable<Tick>().InsertOnSubmit(newTick);
-            //sqliteContext.SubmitChanges();
-
-            if (insertCount > 50) return;
-
+            //async write to Mongo
             var document = new BsonDocument
             {
                 { "market_no", newTick.marketNo },
@@ -950,11 +943,9 @@ namespace qtp
                 { "close", newTick.close },
                 { "qty", newTick.qty }
             };
-
             
             var collection = _mongoDB.GetCollection<BsonDocument>("tick");
             await collection.InsertOneAsync(document);
-            insertCount++;
         }
 
         private void InsertBest5(BEST5 Best5)
