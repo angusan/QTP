@@ -15,6 +15,9 @@ using System.Data.SQLite;
 using System.Data.Linq;
 using QTP.entity;
 using QTP.service;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using System.Threading.Tasks;
 
 namespace qtp
 {
@@ -37,6 +40,8 @@ namespace qtp
 
         DataContext sqliteContext;
         Hashtable symbolNames = new Hashtable();
+        protected static IMongoClient _mongoClient;
+        protected static IMongoDatabase _mongoDB;
 
         private delegate void InvokeSendMessage(string state);
         //private delegate void EnterMonitor();
@@ -64,6 +69,8 @@ namespace qtp
 
         IntPtr HWND_BROADCAST = new IntPtr(0xffff);
         uint MSG_SHOW = RegisterWindowMessage("Message");
+
+        int insertCount = 0;
 
         #endregion
 
@@ -131,12 +138,20 @@ namespace qtp
 
             SetDoubleBuffered(gridStocks);
 
-            sqliteContext = new DataContext(new SQLiteConnection("Data source=localDB.db"));
+            sqliteContext = new DataContext(new SQLiteConnection("Data source=localDB.db;Journal Mode=MEMORY;Synchronous=OFF;Pooling=True;Max Pool Size=10"));
+
+            ///遠端測試用mongoDB 
+            ///https://mlab.com/login/
+            ///qtptw /qtptw2016
+            _mongoClient = new MongoClient("mongodb://qtp:qtp@ds023118.mlab.com:23118/quote?maxPoolSize=500&waitQueueMultiple=100&waitQueueTimeoutMS=3000000");
+            _mongoDB = _mongoClient.GetDatabase("quote");
+
             initializeTabBooking();
 
             this.reconnectTimer.Elapsed += new System.Timers.ElapsedEventHandler(reconnectTimerEvent);
             this.reconnectTimer.Interval = 60 * 1000;
             this.reconnectTimer.Enabled = false;
+
         }
 
         private void initializeTabBooking()
@@ -872,9 +887,9 @@ namespace qtp
 
             insertTickToDB(pTick, sMarketNo, sStockidx, nPtr);
         }
-        
 
-        private void insertTickToDB(TICK pTick, short sMarketNo, short sStockidx, int nPtr)
+
+        private async void insertTickToDB(TICK pTick, short sMarketNo, short sStockidx, int nPtr)
         {
             String symbol = "";
             String key = sMarketNo.ToString() + sStockidx.ToString();
@@ -910,15 +925,36 @@ namespace qtp
                 newTick.ask = 0;
             else
                 newTick.ask = Convert.ToInt32(pTick.m_nAsk / 100.00);
-            
+
             if (pTick.m_nAsk == -999999)
                 newTick.close = 0;
             else
                 newTick.close = Convert.ToInt32(pTick.m_nClose / 100.00);
 
+            newTick.qty = pTick.m_nQty;
+
             //FIXME : SQLite高速寫檔 有效能問題
             //sqliteContext.GetTable<Tick>().InsertOnSubmit(newTick);
             //sqliteContext.SubmitChanges();
+
+            if (insertCount > 50) return;
+
+            var document = new BsonDocument
+            {
+                { "market_no", newTick.marketNo },
+                { "stockIdx", newTick.stockIdx },
+                { "ptr", newTick.ptr },
+                { "date", newTick.date },
+                { "bid", newTick.bid },
+                { "ask", newTick.ask },
+                { "close", newTick.close },
+                { "qty", newTick.qty }
+            };
+
+            
+            var collection = _mongoDB.GetCollection<BsonDocument>("tick");
+            await collection.InsertOneAsync(document);
+            insertCount++;
         }
 
         private void InsertBest5(BEST5 Best5)
@@ -1139,22 +1175,6 @@ namespace qtp
             sqliteContext.SubmitChanges();
 
             gridBooking.DataSource = this.findBookings();
-        }
-
-        private void btnSaveTick_Click(object sender, EventArgs e)
-        {
-            /*
-            List<Tick> ticks = DataTableConverter.to<Tick>(m_dtTick);
-            foreach (var tick in ticks) {
-                try
-                {
-                    sqliteContext.GetTable<Tick>().InsertOnSubmit(tick);
-                    sqliteContext.SubmitChanges();
-                } catch (Exception ex) {
-                    Console.Write(ex.ToString());
-                }
-            }
-            */
         }
     }
 }
