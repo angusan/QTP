@@ -63,7 +63,6 @@
             this.txtStocks = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tabTickWatch = new System.Windows.Forms.TabPage();
-            this.btnSaveTick = new System.Windows.Forms.Button();
             this.GridBest5Bid = new System.Windows.Forms.DataGridView();
             this.GridBest5Ask = new System.Windows.Forms.DataGridView();
             this.GridTick = new System.Windows.Forms.DataGridView();
@@ -427,7 +426,6 @@
             // 
             // tabTickWatch
             // 
-            this.tabTickWatch.Controls.Add(this.btnSaveTick);
             this.tabTickWatch.Controls.Add(this.GridBest5Bid);
             this.tabTickWatch.Controls.Add(this.GridBest5Ask);
             this.tabTickWatch.Controls.Add(this.GridTick);
@@ -441,16 +439,6 @@
             this.tabTickWatch.TabIndex = 1;
             this.tabTickWatch.Text = "Tick & Best5";
             this.tabTickWatch.UseVisualStyleBackColor = true;
-            // 
-            // btnSaveTick
-            // 
-            this.btnSaveTick.Location = new System.Drawing.Point(272, 17);
-            this.btnSaveTick.Name = "btnSaveTick";
-            this.btnSaveTick.Size = new System.Drawing.Size(75, 23);
-            this.btnSaveTick.TabIndex = 7;
-            this.btnSaveTick.Text = " 儲存";
-            this.btnSaveTick.UseVisualStyleBackColor = true;
-            this.btnSaveTick.Click += new System.EventHandler(this.btnSaveTick_Click);
             // 
             // GridBest5Bid
             // 
@@ -493,7 +481,7 @@
             this.btnTick.Name = "btnTick";
             this.btnTick.Size = new System.Drawing.Size(75, 23);
             this.btnTick.TabIndex = 3;
-            this.btnTick.Text = "查詢";
+            this.btnTick.Text = "接收報價";
             this.btnTick.UseVisualStyleBackColor = true;
             this.btnTick.Click += new System.EventHandler(this.btnTick_Click);
             // 
@@ -752,7 +740,6 @@
         private System.Windows.Forms.Button btnInsertBook;
         private System.Windows.Forms.Label label12;
         private System.Windows.Forms.TextBox txtBoxMarket;
-        private System.Windows.Forms.Button btnSaveTick;
     }
 }
 
