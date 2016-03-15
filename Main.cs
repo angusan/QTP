@@ -261,18 +261,18 @@ namespace qtp
             gridStocks.Columns["m_sDecimal"].Visible        = false;
             gridStocks.Columns["m_sTypeNo"].Visible         = false;
             gridStocks.Columns["m_cMarketNo"].Visible       = false;
-            gridStocks.Columns["m_caStockNo"].HeaderText    = "代碼";
-            gridStocks.Columns["m_caName"].HeaderText       = "名稱";
-            gridStocks.Columns["m_nOpen"].HeaderText        = "開盤價";
+            gridStocks.Columns["m_caStockNo"].HeaderText    = "StockNo";
+            gridStocks.Columns["m_caName"].Visible          = false;
+            gridStocks.Columns["m_nOpen"].Visible           = false;
             gridStocks.Columns["m_nHigh"].Visible           = false;
             gridStocks.Columns["m_nLow"].Visible            = false;
-            gridStocks.Columns["m_nClose"].HeaderText       = "成交價";
-            gridStocks.Columns["m_nTickQty"].HeaderText     = "單量";
-            gridStocks.Columns["m_nRef"].HeaderText         = "昨收價";
-            gridStocks.Columns["m_nBid"].HeaderText         = "買進";
-            gridStocks.Columns["m_nBc"].Visible             = false;
-            gridStocks.Columns["m_nAsk"].HeaderText         = "賣出";
-            gridStocks.Columns["m_nAc"].Visible             = false;
+            gridStocks.Columns["m_nClose"].HeaderText       = "Price";
+            gridStocks.Columns["m_nTickQty"].HeaderText     = "Volume";
+            gridStocks.Columns["m_nRef"].Visible            = false;
+            gridStocks.Columns["m_nAsk"].HeaderText         = "Ask";
+            gridStocks.Columns["m_nAc"].HeaderText          = "Ask Vol.";
+            gridStocks.Columns["m_nBid"].HeaderText         = "Bid";
+            gridStocks.Columns["m_nBc"].HeaderText          = "Bid Vol.";
             gridStocks.Columns["m_nTBc"].Visible            = false;
             gridStocks.Columns["m_nTAc"].Visible            = false;
             gridStocks.Columns["m_nFutureOI"].Visible       = false;
@@ -1067,70 +1067,6 @@ namespace qtp
                 btnEnterMonitor_Click(null, null);
             }
             base.WndProc(ref m);
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            string strStocks;
-            int nPage = 2;
-
-            m_dtStocks.Clear();
-            gridStocks.ClearSelection();
-
-            gridStocks.DataSource = m_dtStocks;
-
-            gridStocks.Columns["m_sStockidx"].Visible = false;
-            gridStocks.Columns["m_sDecimal"].Visible = false;
-            gridStocks.Columns["m_sTypeNo"].Visible = false;
-            gridStocks.Columns["m_cMarketNo"].Visible = false;
-            gridStocks.Columns["m_caStockNo"].HeaderText = "代碼";
-            gridStocks.Columns["m_caName"].HeaderText = "名稱";
-            gridStocks.Columns["m_nOpen"].HeaderText = "開盤價";
-            gridStocks.Columns["m_nHigh"].Visible = false;
-            gridStocks.Columns["m_nLow"].Visible = false;
-            gridStocks.Columns["m_nClose"].HeaderText = "成交價";
-            gridStocks.Columns["m_nTickQty"].HeaderText = "單量";
-            gridStocks.Columns["m_nRef"].HeaderText = "昨收價";
-            gridStocks.Columns["m_nBid"].HeaderText = "買進";
-            gridStocks.Columns["m_nBc"].Visible = false;
-            gridStocks.Columns["m_nAsk"].HeaderText = "賣出";
-            gridStocks.Columns["m_nAc"].Visible = false;
-            gridStocks.Columns["m_nTBc"].Visible = false;
-            gridStocks.Columns["m_nTAc"].Visible = false;
-            gridStocks.Columns["m_nFutureOI"].Visible = false;
-            gridStocks.Columns["m_nTQty"].Visible = false;
-            gridStocks.Columns["m_nYQty"].Visible = false;
-            gridStocks.Columns["m_nUp"].Visible = false;
-            gridStocks.Columns["m_nDown"].Visible = false;
-
-            strStocks = txtStocks.Text.Trim();
-
-            string[] Stocks = strStocks.Split(new Char[] { ',' });
-
-            foreach (string s in Stocks)
-            {
-                STOCK pSTOCK;
-
-                int nCode = Functions.SKQuoteLib_GetStockByNo(s.Trim(), out pSTOCK);
-
-                if (nCode == 0)
-                {
-                    OnUpDateDataRow(pSTOCK);
-                }
-            }
-
-            strStocks = "MTX00,MTX02";
-
-            m_nCode = Functions.SKQuoteLib_RequestStocks(out nPage, strStocks);
-
-            if (m_nCode == 0)
-            {
-                lblMessage.Text = "SKQuoteLib_RequestStocks 呼叫成功";
-            }
-            else
-            {
-                lblMessage.Text = "呼叫失敗 [CODE] " + GetApiCodeDefine(m_nCode);
-            }
         }
 
         private List<Code_Mapping> findCodeMapping() {
