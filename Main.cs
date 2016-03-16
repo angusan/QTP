@@ -796,12 +796,12 @@ namespace qtp
                     myDataRow["m_nClose"]       = pStock.m_nClose / ( Math.Pow( 10, pStock.m_sDecimal));
                     myDataRow["m_nTickQty"]     = pStock.m_nTickQty;
                     myDataRow["m_nRef"]         = pStock.m_nRef / ( Math.Pow( 10, pStock.m_sDecimal));
+                    myDataRow["m_nAsk"]         = pStock.m_nAsk / (Math.Pow(10, pStock.m_sDecimal));
+                    myDataRow["m_nAc"]          = pStock.m_nAc;
                     myDataRow["m_nBid"]         = pStock.m_nBid / ( Math.Pow( 10, pStock.m_sDecimal));
                     myDataRow["m_nBc"]          = pStock.m_nBc;
-                    myDataRow["m_nAsk"]         = pStock.m_nAsk / ( Math.Pow( 10, pStock.m_sDecimal));
-                    myDataRow["m_nAc"]          = pStock.m_nAc;
-                    myDataRow["m_nTBc"]         = pStock.m_nTBc;
                     myDataRow["m_nTAc"]         = pStock.m_nTAc;
+                    myDataRow["m_nTBc"]         = pStock.m_nTBc;
                     myDataRow["m_nFutureOI"]    = pStock.m_nFutureOI;
                     myDataRow["m_nTQty"]        = pStock.m_nTQty;
                     myDataRow["m_nYQty"]        = pStock.m_nYQty;
@@ -824,18 +824,18 @@ namespace qtp
                 drFind["m_cMarketNo"]   = pStock.m_cMarketNo;
                 drFind["m_caStockNo"]   = pStock.m_caStockNo;
                 drFind["m_caName"]      = pStock.m_caName;
-                drFind["m_nOpen"]       =  pStock.m_nOpen / ( Math.Pow( 10, pStock.m_sDecimal));
+                drFind["m_nOpen"]       = pStock.m_nOpen / ( Math.Pow( 10, pStock.m_sDecimal));
                 drFind["m_nHigh"]       = pStock.m_nHigh / ( Math.Pow( 10, pStock.m_sDecimal));
                 drFind["m_nLow"]        = pStock.m_nLow / ( Math.Pow( 10, pStock.m_sDecimal));
                 drFind["m_nClose"]      = pStock.m_nClose / ( Math.Pow( 10, pStock.m_sDecimal));
                 drFind["m_nTickQty"]    = pStock.m_nTickQty;
                 drFind["m_nRef"]        = pStock.m_nRef / ( Math.Pow( 10, pStock.m_sDecimal));
+                drFind["m_nAsk"]        = pStock.m_nAsk / (Math.Pow(10, pStock.m_sDecimal));
+                drFind["m_nAc"]         = pStock.m_nAc;
                 drFind["m_nBid"]        = pStock.m_nBid / ( Math.Pow( 10, pStock.m_sDecimal));
                 drFind["m_nBc"]         = pStock.m_nBc;
-                drFind["m_nAsk"]        = pStock.m_nAsk / ( Math.Pow( 10, pStock.m_sDecimal));
-                drFind["m_nAc"]         = pStock.m_nAc;
-                drFind["m_nTBc"]        = pStock.m_nTBc;
                 drFind["m_nTAc"]        = pStock.m_nTAc;
+                drFind["m_nTBc"]        = pStock.m_nTBc;
                 drFind["m_nFutureOI"]   = pStock.m_nFutureOI;
                 drFind["m_nTQty"]       = pStock.m_nTQty;
                 drFind["m_nYQty"]       = pStock.m_nYQty;
@@ -1102,6 +1102,15 @@ namespace qtp
             sqliteContext.SubmitChanges();
 
             gridBooking.DataSource = this.findBookings();
+        }
+
+        private void AddSymbols_Click(object sender, EventArgs e)
+        {
+            m_dtTick.Clear();
+
+            int nPageNo = 1;
+            m_nCode = Functions.SKQuoteLib_RequestTicks(out nPageNo, txtStocks.Text.Trim());
+            m_strStock = txtStocks.Text.Trim();
         }
     }
 }
