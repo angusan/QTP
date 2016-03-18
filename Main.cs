@@ -17,6 +17,9 @@ using QTP.entity;
 using QTP.service;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using RabbitMQ.Client;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace qtp
@@ -39,12 +42,18 @@ namespace qtp
         private TICK        m_Tick;
 
         DataContext sqliteContext;
+        private const string sqliteConnect = "Data source=localDB.db;Journal Mode=MEMORY;Synchronous=OFF;Pooling=True;Max Pool Size=10";
         Hashtable symbolNames = new Hashtable();
+        //MongoDB
         protected static IMongoClient _mongoClient;
         protected static IMongoDatabase _mongoDB;
+        private const string mongoDBConnect = "mongodb://qtp:qtp@ds023118.mlab.com:23118/quote?maxPoolSize=500&waitQueueMultiple=100&waitQueueTimeoutMS=3000000";
+
+        //RabbitMQ
+        BlockingCollection<Tick> tickQueue = new BlockingCollection<Tick>(1000000);
+        private const string rabbitMQConnect = "amqp://rxiisuvg:mUAK7MbTe52J9C-xNsV-V6AkHDSFfSmt@white-mynah-bird.rmq.cloudamqp.com/rxiisuvg";
 
         private delegate void InvokeSendMessage(string state);
-        //private delegate void EnterMonitor();
 
         public delegate void ReconnectTimerEvent(object source, ElapsedEventArgs args);
 
@@ -136,14 +145,12 @@ namespace qtp
 
             SetDoubleBuffered(gridStocks);
 
-            sqliteContext = new DataContext(new SQLiteConnection("Data source=localDB.db;Journal Mode=MEMORY;Synchronous=OFF;Pooling=True;Max Pool Size=10"));
+            sqliteContext = new DataContext(new SQLiteConnection(sqliteConnect));
 
-            ///遠端測試用mongoDB 
-            ///https://mlab.com/login/
-            ///qtptw /qtptw2016
-            _mongoClient = new MongoClient("mongodb://qtp:qtp@ds023118.mlab.com:23118/quote?maxPoolSize=500&waitQueueMultiple=100&waitQueueTimeoutMS=3000000");
+            ///Cloud MongoDB 
+            _mongoClient = new MongoClient(mongoDBConnect);
             _mongoDB = _mongoClient.GetDatabase("quote");
-
+            
             initializeTabBooking();
 
             this.reconnectTimer.Elapsed += new System.Timers.ElapsedEventHandler(reconnectTimerEvent);
@@ -347,30 +354,30 @@ namespace qtp
             m_dtTick.Clear();
             m_dtBest5Ask.Clear();
             m_dtBest5Bid.Clear();
-            
-            m_bTick    = false;
 
-            GridTick.DataSource         = m_dtTick;
-            GridBest5Ask.DataSource     = m_dtBest5Ask;
-            GridBest5Bid.DataSource     = m_dtBest5Bid;
+            m_bTick = false;
 
-            GridTick.Columns["m_nPtr"].Visible          = true;
-            GridTick.Columns["m_nTime"].HeaderText      = "時間";
-            GridTick.Columns["m_nTime"].Width           = 80;
-            GridTick.Columns["m_nBid"].HeaderText       = "買價";
-            GridTick.Columns["m_nBid"].Width            = 80;
-            GridTick.Columns["m_nAsk"].HeaderText       = "賣價";
-            GridTick.Columns["m_nAsk"].Width            = 80;
-            GridTick.Columns["m_nClose"].HeaderText     = "成交價";
-            GridTick.Columns["m_nClose"].Width          = 80;
-            GridTick.Columns["m_nQty"].HeaderText       = "量";
-            GridTick.Columns["m_nQty"].Width            = 40;
+            GridTick.DataSource = m_dtTick;
+            GridBest5Ask.DataSource = m_dtBest5Ask;
+            GridBest5Bid.DataSource = m_dtBest5Bid;
+
+            GridTick.Columns["m_nPtr"].Visible = true;
+            GridTick.Columns["m_nTime"].HeaderText = "時間";
+            GridTick.Columns["m_nTime"].Width = 80;
+            GridTick.Columns["m_nBid"].HeaderText = "買價";
+            GridTick.Columns["m_nBid"].Width = 80;
+            GridTick.Columns["m_nAsk"].HeaderText = "賣價";
+            GridTick.Columns["m_nAsk"].Width = 80;
+            GridTick.Columns["m_nClose"].HeaderText = "成交價";
+            GridTick.Columns["m_nClose"].Width = 80;
+            GridTick.Columns["m_nQty"].HeaderText = "量";
+            GridTick.Columns["m_nQty"].Width = 40;
 
 
-            GridBest5Ask.Columns["m_nAskQty"].HeaderText    = "張數";
-            GridBest5Ask.Columns["m_nAskQty"].Width         = 60;
-            GridBest5Ask.Columns["m_nAsk"].HeaderText       = "賣價";
-            GridBest5Ask.Columns["m_nAsk"].Width            = 60;
+            GridBest5Ask.Columns["m_nAskQty"].HeaderText = "張數";
+            GridBest5Ask.Columns["m_nAskQty"].Width = 60;
+            GridBest5Ask.Columns["m_nAsk"].HeaderText = "賣價";
+            GridBest5Ask.Columns["m_nAsk"].Width = 60;
 
             GridBest5Bid.Columns["m_nAskQty"].HeaderText = "張數";
             GridBest5Bid.Columns["m_nAskQty"].Width = 60;
@@ -388,6 +395,36 @@ namespace qtp
             nPageNo = 1;
             m_nCode = Functions.SKQuoteLib_RequestTicks(out nPageNo, txtTick.Text.Trim());
             m_strStock = txtTick.Text.Trim();
+
+
+            // A simple blocking consumer with no cancellation.
+            createRabbitMQWorkers(20);
+        }
+
+        private void createRabbitMQWorkers(int maxRabbitConnectionSize)
+        {
+            for (int i = 1; i <= maxRabbitConnectionSize; i++)
+            {
+                int connIdx = i;
+                Task.Run(() =>
+                {
+                    Console.WriteLine("Creat Task :{0} ", connIdx);
+                    while (!tickQueue.IsCompleted)
+                    {
+                        Tick tick;
+                        try
+                        {
+                            tick = tickQueue.Take();
+                            Console.WriteLine("Worker {0} take:{1} ", connIdx, tick.ptr);
+                            pushTickToRabbit(tick);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            Console.WriteLine("Push wasn't completed! ");
+                        }
+                    }
+                });
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -883,12 +920,7 @@ namespace qtp
 
             m_dtTick.Rows.Add(myDataRow);
 
-            insertTickToDB(pTick, sMarketNo, sStockidx, nPtr);
-        }
 
-
-        private async void insertTickToDB(TICK pTick, short sMarketNo, short sStockidx, int nPtr)
-        {
             String symbol = "";
             String key = sMarketNo.ToString() + sStockidx.ToString();
 
@@ -914,6 +946,7 @@ namespace qtp
             newTick.stockIdx = symbol;
             newTick.ptr = nPtr;
             newTick.date = DateTime.Today.ToString("yyyyMMdd");
+            newTick.time = Convert.ToString(pTick.m_nTime).PadLeft(6, '0');
             if (pTick.m_nBid == -999999)
                 newTick.bid = 0;
             else
@@ -931,21 +964,66 @@ namespace qtp
 
             newTick.qty = pTick.m_nQty;
 
-            //async write to Mongo
-            var document = new BsonDocument
+            insertTickToDB(newTick);
+
+            //Message Consuming Queue
+            tickQueue.Add(newTick);
+        }
+
+        private async void insertTickToDB(Tick newTick)
+        {
+            try
             {
-                { "market_no", newTick.marketNo },
-                { "stockIdx", newTick.stockIdx },
-                { "ptr", newTick.ptr },
-                { "date", newTick.date },
-                { "bid", newTick.bid },
-                { "ask", newTick.ask },
-                { "close", newTick.close },
-                { "qty", newTick.qty }
-            };
-            
-            var collection = _mongoDB.GetCollection<BsonDocument>("tick");
-            await collection.InsertOneAsync(document);
+                //async write to Mongo
+                var document = new BsonDocument
+                {
+                    { "market_no", newTick.marketNo },
+                    { "stockIdx", newTick.stockIdx },
+                    { "ptr", newTick.ptr },
+                    { "date", newTick.date },
+                    { "bid", newTick.bid },
+                    { "ask", newTick.ask },
+                    { "close", newTick.close },
+                    { "qty", newTick.qty }
+                };
+
+                var collection = _mongoDB.GetCollection<BsonDocument>("tick");
+                await collection.InsertOneAsync(document);
+            }
+            catch (Exception ex) {
+                Console.WriteLine("Insert MongoDB fail:" + ex.ToString());
+            }
+        }
+
+        private void pushTickToRabbit(Tick newTick)
+        {
+            try
+            {
+                var rcfactory = new ConnectionFactory();
+                rcfactory.Uri = rabbitMQConnect;
+                using (var connection = rcfactory.CreateConnection())
+                using (var rabbitChannel = connection.CreateModel())
+                {
+                    rabbitChannel.ExchangeDeclare(exchange: "quote", type: "topic");
+
+                    var routingKey = "quote." + newTick.stockIdx;
+                    var body = Encoding.UTF8.GetBytes(newTick.ToString());
+
+                    IBasicProperties props = rabbitChannel.CreateBasicProperties();
+                    props.ContentType = "text/plain";
+                    props.DeliveryMode = 2;
+                    props.Expiration = "30000";
+
+                    Console.WriteLine(" [x] Sent '{0}':'{1}'", routingKey, newTick.ToString());
+                    rabbitChannel.BasicPublish(exchange: "quote",
+                                         routingKey: routingKey,
+                                         basicProperties: props,
+                                         body: body);
+                }
+            }
+            catch (Exception ex) {
+                Console.WriteLine("Push Rabbit fail:" + ex.ToString());
+            }
         }
 
         private void InsertBest5(BEST5 Best5)
@@ -979,8 +1057,6 @@ namespace qtp
                 myDataRow["m_nAsk"]     = Best5.m_nAsk5/ 100.00;
                 m_dtBest5Ask.Rows.Add(myDataRow);
 
-
-
                 myDataRow = m_dtBest5Bid.NewRow();
                 myDataRow["m_nAskQty"] = Best5.m_nBidQty1;
                 myDataRow["m_nAsk"] = Best5.m_nBid1 / 100.00;
@@ -1005,7 +1081,6 @@ namespace qtp
                 myDataRow["m_nAskQty"] = Best5.m_nBidQty5;
                 myDataRow["m_nAsk"] = Best5.m_nBid5 / 100.00;
                 m_dtBest5Bid.Rows.Add(myDataRow);
-
             }
             else
             {
@@ -1023,7 +1098,6 @@ namespace qtp
                 
                 m_dtBest5Ask.Rows[4]["m_nAskQty"]   = Best5.m_nAskQty5;
                 m_dtBest5Ask.Rows[4]["m_nAsk"]      = Best5.m_nAsk5/ 100.00;
-
 
                 m_dtBest5Bid.Rows[0]["m_nAskQty"]   = Best5.m_nBidQty1;
                 m_dtBest5Bid.Rows[0]["m_nAsk"]      = Best5.m_nBid1 / 100.00;
@@ -1071,10 +1145,6 @@ namespace qtp
 
         private List<Code_Mapping> findCodeMapping() {
             List<Code_Mapping> mappings = (sqliteContext.ExecuteQuery<Code_Mapping>("SELECT * FROM CODE_MAPPING order by name, value")).ToList();
-            foreach (var mapping in mappings)
-            {
-                Console.WriteLine("{0},{1},{2}", mapping.name, mapping.value, mapping.description);
-            };
             return mappings;
         }
 
@@ -1102,6 +1172,11 @@ namespace qtp
             sqliteContext.SubmitChanges();
 
             gridBooking.DataSource = this.findBookings();
+        }
+
+        private void btnStopTick_Click(object sender, EventArgs e)
+        {
+            tickQueue.CompleteAdding();
         }
     }
 }

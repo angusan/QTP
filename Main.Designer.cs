@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.lblPassword = new System.Windows.Forms.Label();
             this.txtPassWord = new System.Windows.Forms.TextBox();
             this.lblAccount = new System.Windows.Forms.Label();
@@ -84,6 +84,7 @@
             this.lblSendRequestServerTime = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.lblGetServerTime = new System.Windows.Forms.Label();
+            this.btnStopTick = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.tabControl1.SuspendLayout();
             this.tabBooking.SuspendLayout();
@@ -370,14 +371,14 @@
             this.gridStocks.AllowUserToDeleteRows = false;
             this.gridStocks.AllowUserToResizeRows = false;
             this.gridStocks.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.AppWorkspace;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Verdana", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.gridStocks.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.AppWorkspace;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Verdana", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.gridStocks.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.gridStocks.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.gridStocks.Location = new System.Drawing.Point(7, 47);
             this.gridStocks.Name = "gridStocks";
@@ -426,6 +427,7 @@
             // 
             // tabTickWatch
             // 
+            this.tabTickWatch.Controls.Add(this.btnStopTick);
             this.tabTickWatch.Controls.Add(this.GridBest5Bid);
             this.tabTickWatch.Controls.Add(this.GridBest5Ask);
             this.tabTickWatch.Controls.Add(this.GridTick);
@@ -635,6 +637,16 @@
             this.lblGetServerTime.Size = new System.Drawing.Size(0, 15);
             this.lblGetServerTime.TabIndex = 26;
             // 
+            // btnStopTick
+            // 
+            this.btnStopTick.Location = new System.Drawing.Point(272, 17);
+            this.btnStopTick.Name = "btnStopTick";
+            this.btnStopTick.Size = new System.Drawing.Size(75, 23);
+            this.btnStopTick.TabIndex = 7;
+            this.btnStopTick.Text = "停止接收";
+            this.btnStopTick.UseVisualStyleBackColor = true;
+            this.btnStopTick.Click += new System.EventHandler(this.btnStopTick_Click);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
@@ -740,6 +752,7 @@
         private System.Windows.Forms.Button btnInsertBook;
         private System.Windows.Forms.Label label12;
         private System.Windows.Forms.TextBox txtBoxMarket;
+        private System.Windows.Forms.Button btnStopTick;
     }
 }
 
